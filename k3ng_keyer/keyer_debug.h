@@ -1,21 +1,21 @@
 // don't touch these unless you know what the hell you are doing or you're asked to uncomment these for debug dumps
-// #define DEBUG_STARTUP
+#define DEBUG_STARTUP
 // #define DEBUG_STARTUP_BLINKS
-// #define DEBUG_LOOP
-// #define DEBUG_EEPROM
+#define DEBUG_LOOP
+#define DEBUG_EEPROM
 // #define DEBUG_MEMORIES
-// #define DEBUG_PLAY_MEMORY
-// #define DEBUG_SEND_CHAR
-// #define DEBUG_MEMORY_WRITE
-// #define DEBUG_MEMORYCHECK
-// #define DEBUG_MEMORY_LOCATIONS
-// #define DEBUG_CAPTURE_COM_PORT
-// #define DEBUG_HELL_TEST
-// #define DEBUG_WINKEY_PROTOCOL_USING_CW
-// #define DEBUG_CHECK_SERIAL
-// #define DEBUG_PS2_KEYBOARD
-// #define DEBUG_VARIABLE_DUMP
-// #define DEBUG_BUTTONS
+//  #define DEBUG_PLAY_MEMORY
+//  #define DEBUG_SEND_CHAR
+//  #define DEBUG_MEMORY_WRITE
+//  #define DEBUG_MEMORYCHECK
+//  #define DEBUG_MEMORY_LOCATIONS
+//  #define DEBUG_CAPTURE_COM_PORT
+//  #define DEBUG_HELL_TEST
+//  #define DEBUG_WINKEY_PROTOCOL_USING_CW
+//  #define DEBUG_CHECK_SERIAL
+//  #define DEBUG_PS2_KEYBOARD
+//  #define DEBUG_VARIABLE_DUMP
+#define DEBUG_BUTTONS
 // #define DEBUG_COMMAND_MODE
 // #define DEBUG_GET_CW_INPUT_FROM_USER
 // #define DEBUG_POTENTIOMETER
@@ -57,7 +57,7 @@
 // #define DEBUG_FARNSWORTH_TIMING
 // #define DEBUG_ASYNC_EEPROM_WRITE
 // #define DEBUG_SERVICE_SEND_BUFFER
-// #define DEBUG_EEPROM_READ_SETTINGS
+#define DEBUG_EEPROM_READ_SETTINGS
 // #define DEBUG_LOOP_ELEMENT_LENGTHS
 
 // #define OPTION_WINKEY_IGNORE_FIRST_STATUS_REQUEST

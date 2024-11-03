@@ -1417,6 +1417,9 @@ Recent Update History
     2024.03.20.2239
       tx_inhibit: unkey PTT when tx_inhibit goes active
 
+    2024.09.09.1545
+      Support ESP32 serial board; ESP32 S3/C3, Nano ESP32, ESP32 WROOM 32 etc. BG4FQD
+
   qwerty
 
   Documentation: https://github.com/k3ng/k3ng_cw_keyer/wiki
@@ -1447,7 +1450,7 @@ If you offer a hardware kit using this software, show your appreciation by sendi
 */
 
 
-#define CODE_VERSION "2024.03.20.2239"
+#define CODE_VERSION "2024.10.01.1545"
 
 #define eeprom_magic_number 41               // you can change this number to have the unit re-initialize EEPROM
 
@@ -1471,6 +1474,8 @@ If you offer a hardware kit using this software, show your appreciation by sendi
 #elif defined(ARDUINO_ARCH_MBED) || defined(ARDUINO_RASPBERRY_PI_PICO_W) || defined(ARDUINO_RASPBERRY_PI_PICO)
   #include <EEPROM.h>
   #include <avr/pgmspace.h>
+#elif defined(ARDUINO_ARCH_ESP32)
+  #include <EEPROM.h>
 #else
   #include <avr/pgmspace.h>
   #include <avr/wdt.h>
@@ -1601,6 +1606,9 @@ If you offer a hardware kit using this software, show your appreciation by sendi
 #elif defined(HARDWARE_YCCC_SO2R_MINI)
   #include "keyer_pin_settings_yccc_so2r_mini.h"
   #include "keyer_settings_yccc_so2r_mini.h"
+#elif defined(ARDUINO_ARCH_ESP32)
+  #include "keyer_pin_settings_ESP32.h"
+  #include "keyer_settings.h"
 #else
   #include "keyer_pin_settings.h"
   #include "keyer_settings.h"
@@ -1842,7 +1850,7 @@ byte last_sending_mode = MANUAL_SENDING;
 byte zero = 0;
 byte iambic_flag = 0;
 unsigned long last_config_write = 0;
-uint16_t memory_area_end = 0;
+uint16_t memory_area_end = 512;
 
 #ifdef FEATURE_SLEEP
   unsigned long last_activity_time = 0;
@@ -2181,7 +2189,7 @@ PRIMARY_SERIAL_CLS * primary_serial_port;
   SECONDARY_SERIAL_CLS * secondary_serial_port;
 #endif
 
-PRIMARY_SERIAL_CLS * debug_serial_port;
+PRIMARY_SERIAL_CLS *debug_serial_port;
 
 #ifdef FEATURE_PTT_INTERLOCK
   byte ptt_interlock_active = 0;
@@ -2388,39 +2396,30 @@ byte async_eeprom_write = 0;
 
 void setup()
 {
+  initialize_serial_ports();        // Goody - this is available for testing startup issues
 
-
-
-  #if defined(FEATURE_DUAL_MODE_KEYER_AND_TINYFSK)
-  check_run_tinyfsk_pin(); // read Mortty+v5 CW<->RTTY slide switch
-  if (runTinyFSK){
-    TinyFSKsetup();
-  } else {
-  #endif
-
-  #if defined(FEATURE_MORTTY_SPEEDPOT_BOOT_FUNCTION)
-    mortty_speedpot_boot_function();
-  #endif
-
+    //primary_serial_port = PRIMARY_SERIAL_PORT;
+    //primary_serial_port->begin(primary_serial_port_baud_rate);
+    //primary_serial_port->println(F("setup: serial port opened.."));
+/*
+Serial.begin(115200);
+Serial.println(F("setup: serial port opened.."));
+Serial.println(F("setup: ok.."));
+*/
+  initialize_debug_startup();       // Goody - this is available for testing startup issues
   initialize_pins();
-  // initialize_serial_ports();        // Goody - this is available for testing startup issues
-  // initialize_debug_startup();       // Goody - this is available for testing startup issues
   initialize_keyer_state();
   initialize_potentiometer();
   initialize_rotary_encoder();
   initialize_default_modes();
   initialize_watchdog();
   initialize_ethernet_variables();
-  #if defined(DEBUG_EEPROM_READ_SETTINGS)
-    initialize_serial_ports();
-  #endif
+ 
   check_eeprom_for_initialization();
   check_for_beacon_mode();
   check_for_debug_modes();
   initialize_analog_button_array();
-  #if !defined(DEBUG_EEPROM_READ_SETTINGS)
-    initialize_serial_ports();
-  #endif
+
   initialize_ps2_keyboard();
   initialize_usb();
   initialize_cw_keyboard();
@@ -2429,15 +2428,9 @@ void setup()
   initialize_web_server();
   initialize_display();
   initialize_sd_card();
-  initialize_debug_startup();
+  //initialize_debug_startup();
 
-  #if defined(FEATURE_DUAL_MODE_KEYER_AND_TINYFSK)
-  } //if (runTinyFSK)
-  #endif
-
-  initialize_audiopwmsinewave();
-
-
+  //initialize_audiopwmsinewave();
 }
 
 // --------------------------------------------------------------------------------------------
@@ -6505,7 +6498,7 @@ void service_async_eeprom_write(){
     if (last_async_eeprom_write_status){ // we have an ansynchronous write to eeprom in progress
 
 
-      #if defined(_BOARD_PIC32_PINGUINO_) || defined(ARDUINO_SAMD_VARIANT_COMPLIANCE)
+      #if defined(_BOARD_PIC32_PINGUINO_) || defined(ARDUINO_SAMD_VARIANT_COMPLIANCE) || defined(ARDUINO_ARCH_ESP32)
         if (EEPROM.read(ee) != *p) {
           EEPROM.write(ee, *p);
         }
@@ -6524,7 +6517,7 @@ void service_async_eeprom_write(){
       } else { // we're done
         async_eeprom_write = 0;
         last_async_eeprom_write_status = 0;
-        #if defined(ARDUINO_SAMD_VARIANT_COMPLIANCE)
+        #if defined(ARDUINO_SAMD_VARIANT_COMPLIANCE) || defined(ARDUINO_ARCH_ESP32)
           EEPROM.commit();
         #endif
 
@@ -9258,9 +9251,9 @@ byte analogbuttonread(byte button_number) {
 #ifdef FEATURE_BUTTONS
 void check_buttons() {
 
-
   #ifdef DEBUG_LOOP
     debug_serial_port->println(F("loop: entering check_buttons"));
+        debug_serial_port->print(F("loop: buttons ADC Value "));
   #endif
 
   static long last_button_action = 0;
@@ -9268,6 +9261,11 @@ void check_buttons() {
   long button_depress_time;
   byte paddle_was_hit = 0;
   byte previous_sidetone_mode = 0;
+
+  #ifdef DEBUG_LOOP
+
+    debug_serial_port->println(analogbuttontemp);
+  #endif
 
   if (analogbuttontemp < 0 ) { // no button pressed.
     return;
@@ -16518,9 +16516,10 @@ void serial_status_memories(PRIMARY_SERIAL_CLS * port_to_use)
     port_to_use->write("Memory ");
     port_to_use->print(x+1);
     port_to_use->write(":");
-    if ( EEPROM.read(memory_start(x)) == 255) {
+    if (EEPROM.read(memory_start(x)) == 255) {
       port_to_use->write("{empty}");
-    } else {
+    }
+    else {
       for (int y = (memory_start(x)); (y < last_memory_location); y++) {
         if (EEPROM.read(y) < 255) {
           #if defined(OPTION_PROSIGN_SUPPORT)
@@ -18003,7 +18002,6 @@ void initialize_pins() {
 
 void initialize_debug_startup(){
 #ifdef DEBUG_STARTUP
-
   serial_status(debug_serial_port);
   #if defined(FEATURE_SERIAL)
   debug_serial_port->println(F("FEATURE_SERIAL"));
@@ -18025,6 +18023,9 @@ void initialize_debug_startup(){
   #endif
   #ifdef OPTION_WINKEY_2_SUPPORT
   debug_serial_port->println(F("OPTION_WINKEY_2_SUPPORT"));
+  #endif
+  #ifdef FEATURE_STRAIGHT_KEY
+  debug_serial_port->println(F("FEATURE_STRAIGHT_KEY"));
   #endif
   #ifdef FEATURE_BEACON
   debug_serial_port->println(F("FEATURE_BEACON"));
@@ -18483,8 +18484,10 @@ void initialize_watchdog(){
 
 void check_eeprom_for_initialization(){
 
-  #if defined(ARDUINO_RASPBERRY_PI_PICO_W) || defined(ARDUINO_RASPBERRY_PI_PICO) 
+  #if defined(ARDUINO_RASPBERRY_PI_PICO_W) || defined(ARDUINO_RASPBERRY_PI_PICO)
     EEPROM.begin(4096);
+  #elif defined(ARDUINO_ARCH_ESP32)
+    EEPROM.begin(512);
   #endif
 
   // do an eeprom reset to defaults if paddles are squeezed
@@ -18558,7 +18561,6 @@ void initialize_serial_ports(){
   #if defined(FEATURE_SERIAL)
 
     #if defined(FEATURE_WINKEY_EMULATION) && defined(FEATURE_COMMAND_LINE_INTERFACE) //--------------------------------------------
-
       #ifdef FEATURE_BUTTONS
         if (analogbuttonread(0)) {
           #ifdef OPTION_PRIMARY_SERIAL_PORT_DEFAULT_WINKEY_EMULATION
@@ -18602,9 +18604,21 @@ void initialize_serial_ports(){
     primary_serial_port = PRIMARY_SERIAL_PORT;
 
     primary_serial_port->begin(primary_serial_port_baud_rate);
+    primary_serial_port->println(F("setup: serial port opened.."));
+
+
+    #ifdef DEBUG_AUX_SERIAL_PORT
+      debug_port = DEBUG_AUX_SERIAL_PORT;
+      debug_serial_port->begin(DEBUG_AUX_SERIAL_PORT_BAUD);
+      debug_serial_port->print("debug port open ");
+      debug_serial_port->println(CODE_VERSION);
+    #else
+      debug_serial_port= primary_serial_port;     //BG4FQD 20241030
+    #endif //DEBUG_AUX_SERIAL_PORT
+
 
     #ifdef DEBUG_STARTUP
-      debug_serial_port->println(F("setup: serial port opened"));
+      debug_serial_port->println(F("setup: DEBUG serial port opened"));
     #endif //DEBUG_STARTUP
 
     #if !defined(OPTION_SUPPRESS_SERIAL_BOOT_MSG) && defined(FEATURE_COMMAND_LINE_INTERFACE)
@@ -18621,13 +18635,6 @@ void initialize_serial_ports(){
         memorycheck();
       #endif //DEBUG_MEMORYCHECK
     #endif //!defined(OPTION_SUPPRESS_SERIAL_BOOT_MSG) && defined(FEATURE_COMMAND_LINE_INTERFACE)
-
-    #ifdef DEBUG_AUX_SERIAL_PORT
-      debug_port = DEBUG_AUX_SERIAL_PORT;
-      debug_serial_port->begin(DEBUG_AUX_SERIAL_PORT_BAUD);
-      debug_serial_port->print("debug port open ");
-      debug_serial_port->println(CODE_VERSION);
-    #endif //DEBUG_AUX_SERIAL_PORT
 
     #ifdef FEATURE_COMMAND_LINE_INTERFACE_ON_SECONDARY_PORT
       #if defined(ARDUINO_RASPBERRY_PI_PICO_W) || defined(ARDUINO_RASPBERRY_PI_PICO)
@@ -18722,10 +18729,7 @@ void ps2int_write() {
 //---------------------------------------------------------------------
 
 void initialize_display(){
-
-
   #ifdef FEATURE_DISPLAY  
-
     #ifdef FEATURE_OLED_SSD1306 
       Wire.begin();
       Wire.setClock(400000L);
