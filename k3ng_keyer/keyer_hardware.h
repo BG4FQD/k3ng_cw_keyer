@@ -1,6 +1,5 @@
 /*  keyer_hardware.h
 
-
   Edit this file to enable specific hardware profiles.
 
   When enabling a hardware option below, the default keyer_pin_settings.h, keyer_features_and_options.h, and keyer_settings.h files are not compiled.
@@ -35,10 +34,9 @@
 // #define HARDWARE_TEST_EVERYTHING
 // #define HARDWARE_TEST
 // ESP BG4FQD
-#define HARDWARE_ESP32_WROOM_32 // ESP32 WROOM 32
 // #define HARDWARE_ESP32_S3
 // #define HARDWARE_ESP8266
-// #define HARDWARE_NANO_ESP32     // ESP32 S3
+// #define HARDWARE_NANO_ESP32     // ESP32S3
 
 /*
 
@@ -95,9 +93,14 @@
 #elif defined(_BOARD_PIC32_PINGUINO_) // || defined(_BOARD_PIC32_PINGUINO_OTG_)
 #define PRIMARY_SERIAL_CLS USBSerial
 #define SECONDARY_SERIAL_CLS HardwareSerial
-#elif defined(HARDWARE_NANO_ESP32)
+#elif ARDUINO_ARCH_ESP32 && ARDUINO_USB_CDC_ON_BOOT
+#if defined(ARDUINO_USB_MODE)
 #define PRIMARY_SERIAL_CLS USBCDC
 #define SECONDARY_SERIAL_CLS USBCDC
+#else
+#define PRIMARY_SERIAL_CLS HWCDC
+#define SECONDARY_SERIAL_CLS HWCDC
+#endif
 #else
 #define PRIMARY_SERIAL_CLS HardwareSerial
 #define SECONDARY_SERIAL_CLS HardwareSerial

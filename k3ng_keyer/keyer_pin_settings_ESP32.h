@@ -1,17 +1,23 @@
 /* Pins - you must review these and configure ! */
+
 #ifndef keyer_pin_settings_h
 #define keyer_pin_settings_h
 
-#define paddle_left 12
-#define paddle_right 13
-#define tx_key_line_1 18 // (high = key down/tx on)
+#ifdef ARDUINO_ARCH_ESP32
+#define paddle_touchpad_left 0
+#define paddle_touchpad_right 0
+#endif
+#define paddle_left 13
+#define paddle_right 14
+#define tx_key_line_1 25 // (high = key down/tx on)
+#define tx_led 2         // no use mustbe set 0, BG4FQD
 #define tx_key_line_2 0
 #define tx_key_line_3 0
 #define tx_key_line_4 0
 #define tx_key_line_5 0
 #define tx_key_line_6 0
-#define sidetone_line 2  // connect a speaker for sidetone
-#define potentiometer A0 // Speed potentiometer (0 to 5 V) Use pot from 1k to 10k
+#define sidetone_line 16 // connect a speaker for sidetone
+#define potentiometer 0  // Speed potentiometer (0 to 5 V) Use pot from 1k to 10k
 #define ptt_tx_1 23      // PTT ("push to talk") lines
 #define ptt_tx_2 0       //   Can be used for keying fox transmitter, T/R switch, or keying slow boatanchors
 #define ptt_tx_3 0       //   These are optional - set to 0 if unused
@@ -24,7 +30,7 @@
 #define potentiometer_enable_pin 0 // if defined, the potentiometer will be enabled only when this pin is held low; set to 0 to ignore this pin
 
 #ifdef FEATURE_BUTTONS
-#define analog_buttons_pin 15
+#define analog_buttons_pin 27
 #define command_mode_active_led 0
 #endif // FEATURE_BUTTONS
 
@@ -73,7 +79,7 @@ FEATURE_SIDETONE_SWITCH
 
 // rotary encoder pins and options - rotary encoder code from Jim Balls M0CKE
 #ifdef FEATURE_ROTARY_ENCODER
-#define OPTION_ENCODER_HALF_STEP_MODE // Half-step mode?
+// #define OPTION_ENCODER_HALF_STEP_MODE // Half-step mode?
 #define rotary_pin1 32                // CW Encoder Pin
 #define rotary_pin2 33                // CCW Encoder Pin
 #define OPTION_ENCODER_ENABLE_PULLUPS // define to enable weak pullups.
@@ -93,7 +99,7 @@ FEATURE_SIDETONE_SWITCH
 #endif                  // FEATURE_PTT_INTERLOCK
 
 #ifdef FEATURE_STRAIGHT_KEY
-#define pin_straight_key 5
+#define pin_straight_key 17
 #endif // FEATURE_STRAIGHT_KEY
 
 // FEATURE_CW_DECODER & OPTION_CW_DECODER_GOERTZEL_AUDIO_DETECTOR
